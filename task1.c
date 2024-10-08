@@ -2,72 +2,68 @@
 #include <stdlib.h>
 #include <string.h>
 
-char **fgetline(FILE *f);
+char **fgetlines(char ** list);
 int comparator(const void *s, const void *l);
-static int j = 1;
+int count_str(char *buf, long);
 
-int main() {
-    if (fopen("test.txt", "r") == NULL)
-        return EXIT_FAILURE;
+struct data{
+    char * buffer;
+    char ** list_of_fucking_pointers;
+    int cnt_str;
+} all;
+
+int main(void) {
     FILE *f = fopen("test.txt", "r");
-    char **a = fgetline(f);
+    if (f == NULL) return EXIT_FAILURE;
+
+    fseek(f, 0, SEEK_END);
+    long len_f = ftell(f);
+    rewind(f);
+    all.buffer = (char *)malloc(sizeof(char) * len_f);
+    if (all.buffer == NULL) return 2;
+    size_t result = fread(all.buffer, sizeof(char), len_f, f);
+
+    all.cnt_str = count_str(all.buffer, result);
+
+    all.list_of_fucking_pointers = calloc(all.cnt_str, sizeof(char *));
+    all.list_of_fucking_pointers = fgetlines(all.list_of_fucking_pointers);
     fclose(f);
-    qsort(a, j, sizeof(char *), comparator);
+    qsort(all.list_of_fucking_pointers, all.cnt_str, sizeof(char *), comparator);
+////////////////////////////////////////OUTPUT///////////////////////////////////
     FILE *f2 = fopen("newOne.txt", "w");
     if (f2 == NULL) return EXIT_FAILURE;
-    for (int i = 0; i < j; i++){
-        fputs(a[i], f2);
+    for (int i = 0; i < all.cnt_str; i++){
+        printf("%s\n", all.list_of_fucking_pointers[i]);
+        fputs(all.list_of_fucking_pointers[i], f2);
         fputs("\n", f2);
-        free(a[i]);
     }
     fclose(f2);
-    free(a);
+    free(all.list_of_fucking_pointers);
+    free(all.buffer);
     return 0;
 }
 
-char **fgetline(FILE *f) {
-    const int size = 8;
-    int c, cnt = 1, i = 0;
-    char *st = malloc(sizeof(char)*size), *b, **pr = malloc(sizeof(char)*size), **pr1;
-    pr = malloc(sizeof(char*) * size); // Выделение памяти для массива строк
-    if (pr == NULL) exit(EXIT_FAILURE);
-    while ((c = fgetc(f)) != EOF) {
-        if (c == '\n') {
-            st[i] = 0;
-            pr[j-1] = st;
-            j++;
-            if (j >= size) {
-                pr1 = realloc(pr, sizeof(char*)*size*j);
-                if (pr1 == NULL) exit(EXIT_FAILURE);
-                pr = pr1;
-            }
-            i = 0;
-            cnt = 1;
-            st = NULL;
-            continue;
-        }
-        b = realloc(st, sizeof(char)*size*cnt);
-        if (b == NULL) {
-            free(b);
-            exit(EXIT_FAILURE);
-        }
-        st = b;
-        st[i] = c;
-        i++;
-        if (i >= size*cnt*sizeof(char))
-            cnt++;
-    } 
-    b = realloc(st, sizeof(char)*i);
-    if (b == NULL) {
-        free(b);
-        exit(EXIT_FAILURE);
+int count_str(char *buf, long len_) {
+    int cnt = 0;
+    for (int i = 0; i<len_ ; i++) {
+        if (buf[i] != '\n') continue;
+        cnt++;
     }
-    st = b;
-    st[i] = 0;
-    pr1 = realloc(pr, sizeof(char*)*j);
-    pr = pr1;
-    pr[j-1] = st;
-    return pr;
+    cnt++;
+    return cnt;
+}
+
+char **fgetlines(char ** list) {
+    int sum = 0;
+    for (int i = 0, num_str = 0; num_str < all.cnt_str ; i++) {
+        if (all.buffer[i] == '\n') {
+            all.buffer[i] = '\0';
+            list[num_str] = all.buffer + sum;
+            sum = i+1;
+            num_str++;
+        }
+    }
+    return list;
 }
 
 int comparator(const void *s, const void *l) {
